@@ -26,6 +26,8 @@ import base64
 
 # ------------------ Configuration ------------------
 load_dotenv()
+# Configure Gemini API key from environment
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # Updated Poppler path for user
 poppler_path = r"C:\\Users\\yamun\\Downloads\\poppler-25.07.0\\Library\\bin" if os.name == "nt" else "/usr/bin"
@@ -57,6 +59,16 @@ def text_to_speech(text, language):
         st.markdown(audio_html, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"TTS Error: {e}")
+
+# ------------------ Gemini Model Setup ------------------
+def get_conversational_chain():
+    prompt = PromptTemplate(
+        template="""You are a helpful AI assistant. Use the following context to answer the question.\n\nContext: {context}\nQuestion: {question}\n\nHelpful Answer:""",
+        input_variables=["context", "question"]
+    )
+    model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3)
+    return load_qa_chain(llm=model, chain_type="stuff", prompt=prompt)
+
 
 # ------------------ Helper Functions ------------------
 def extract_text_from_image(image):
@@ -93,13 +105,8 @@ def get_vector_store(chunks):
     store = FAISS.from_texts(chunks, embedding=embeddings)
     store.save_local("faiss_index")
 
-def get_conversational_chain():
-    prompt = PromptTemplate(template="""Context:\n{context}\n\nQ: {question}\n\nA:""", input_variables=["context", "question"])
-    model = ChatGoogleGenerativeAI(model="gemini-2.0-pro", temperature=0.3)
-    return load_qa_chain(model, chain_type="stuff", prompt=prompt)
-
 def search_google(query):
-    model = genai.GenerativeModel('gemini-2.0-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     try:
         return model.generate_content(f"Summary of: {query}").text
     except Exception as e:
@@ -126,52 +133,57 @@ def user_input(question, lang):
     st.write("**Answer:**", translated)
 
 def translate_text(text, target_language):
-    model = genai.GenerativeModel('gemini-2.0-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     return model.generate_content(f"Translate to {target_language}:\n{text}").text
 
 # ------------------ Streamlit UI ------------------
 st.set_page_config(page_title="AI Research Assistant", layout="wide")
 st.markdown("""
 <style>
-body { background-color: #f2f2f2; color: #333; font-family: 'Segoe UI', sans-serif; }
+body { 
+  background-color: #F8F8F8;  /*  Soft, light gray for a clean background */
+  color: #333333; /*  Darker gray for text for good contrast */
+  font-family: 'Segoe UI', sans-serif; 
+}
+
 .stButton > button {
-  background: linear-gradient(to right, #6a11cb, #2575fc);
-  color: white;
-  font-weight: bold;
-  border-radius: 12px;
-  transition: all 0.3s ease-in-out;
+  background: linear-gradient(to right, #6a11cb, #20948B); /*  A vibrant gradient from a deep purple to a teal  */
+  color: white; 
+  font-weight: bold; 
+  border-radius: 12px; 
+  transition: transform 0.3s ease-in-out; 
 }
+
 .stButton > button:hover {
-  transform: scale(1.05);
-  background: linear-gradient(to right, #ff416c, #ff4b2b);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transform: scale(1.05); 
 }
+
 h1, h2, h3, .stMarkdown {
-  animation: fadeInUp 0.7s ease-in-out;
+  animation: fadeInUp 0.7s ease-in-out; 
+  color: #101585; /*  A professional navy blue for headings */
 }
+
 @keyframes fadeInUp {
   0% {opacity: 0; transform: translateY(20px);}
   100% {opacity: 1; transform: translateY(0);}
 }
-.footer {
+
+#github-icon {
   position: fixed;
   bottom: 20px;
   right: 20px;
   z-index: 9999;
 }
 </style>
+            
+<a id="github-icon" href="https://github.com/Yamuna23071A6730/AI-Research-assistant.git" target="_blank">
+    <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="40" height="40"/>
+</a>
 """, unsafe_allow_html=True)
 
 st.title("🤖 Personal AI Research Assistant")
 st.write("Upload documents or provide a URL, ask a question, and get answers in your preferred language.")
 
-st.markdown("""
-<div class="footer">
-  <a href="https://github.com/saivardhan507/AI-Research-Project" target="_blank">
-    <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="40" title="GitHub Repository"/>
-  </a>
-</div>
-""", unsafe_allow_html=True)
 
 mode = st.radio("Choose Input Mode:", ["Type", "Speak"], horizontal=True)
 language = st.selectbox("Select Language", list(language_map.keys()))
