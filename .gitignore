@@ -398,3 +398,4 @@ venv/
 
 # JetBrains Rider
 *.sln.iml
+.env
